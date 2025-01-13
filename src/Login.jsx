@@ -16,7 +16,7 @@ export default function Login({ onLoginSuccess }) {
     }
 
     try {
-      const response = await axios.post('${import.meta.env.VITE_AUTH_AP}/login', {
+      const response = await axios.post(`${import.meta.env.VITE_AUTH_AP}/login`, {
         email,
         password,
       });

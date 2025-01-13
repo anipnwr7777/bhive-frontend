@@ -17,7 +17,7 @@ export default function Register({ onRegisterSuccess }) {
     }
 
     try {
-      const response = await axios.post('${import.meta.env.VITE_AUTH_AP}/register', {
+      const response = await axios.post(`${import.meta.env.VITE_AUTH_AP}/register`, {
         name,
         email,
         password,
