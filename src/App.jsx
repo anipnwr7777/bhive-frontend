@@ -1,7 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Container, Typography, Select, MenuItem, TextField, Button, FormControl, InputLabel, FormHelperText, Grid, Card, CardContent } from '@mui/material';
+import Register from './Register';
+import Login from './Login';
+import {
+	Container,
+	Typography,
+	Grid,
+	Card,
+	CardContent,
+	FormControl,
+	InputLabel,
+	Select,
+	MenuItem,
+	TextField,
+	Button,
+	FormHelperText,
+} from '@mui/material';
 
+// List of fund houses to be used in the dropdown
 const FUND_HOUSES = [
 	'Aditya Birla Sun Life Mutual Fund',
 	'Axis Mutual Fund',
@@ -45,12 +61,64 @@ const FUND_HOUSES = [
 	'Shriram Mutual Fund',
 	'Taurus Mutual Fund',
 	'Zerodha Mutual Fund',
-	'Old Bridge Mutual Fund'
+	'Old Bridge Mutual Fund',
 ];
 
-const USER_ID = 1;
 
 export default function App() {
+	const [isLoggedIn, setIsLoggedIn] = useState(false);
+	const [isRegistered, setIsRegistered] = useState(false)
+
+	const [userId, setUserId] = useState('')
+
+	useEffect(() => {
+		const token = localStorage.getItem('authToken');
+		const userId = localStorage.getItem('userId');
+		setUserId(userId)
+		if (token) {
+			setIsLoggedIn(true);
+			axios.defaults.headers['Authorization'] = `Bearer ${token}`;
+		}
+	}, [isLoggedIn, isRegistered]);
+
+	const handleLoginSuccess = () => {
+		setIsLoggedIn(true);
+	};
+
+	const handleRegisterSuccess = () => {
+		setIsRegistered(true);
+	};
+
+	return (
+		<div>
+			{userId ? (
+				<PortfolioApp userId={userId} />
+			) : (
+				<div>
+					{!isRegistered ? (
+						<div>
+							<Register onRegisterSuccess={handleRegisterSuccess} />
+							<button onClick={() => setIsRegistered(true)}>
+								Already have an account? Login
+							</button>
+						</div>
+					) : (
+						<div>
+							<Login onLoginSuccess={handleLoginSuccess} />
+							<button onClick={() => setIsRegistered(false)}>
+								Don't have an account? Register
+							</button>
+						</div>
+					)}
+				</div>
+			)}
+		</div>
+	);
+
+}
+
+
+function PortfolioApp({ userId }) {
 	const [portfolio, setPortfolio] = useState([]);
 	const [selectedFundHouse, setSelectedFundHouse] = useState('');
 	const [schemes, setSchemes] = useState([]);
@@ -63,27 +131,25 @@ export default function App() {
 
 	const fetchPortfolio = async () => {
 		try {
-			const response = await axios.get(`http://localhost:3000/api/users/${USER_ID}/portfolio`);
+			const response = await axios.get(`${import.meta.env.VITE_API_AP}/users/${userId}/portfolio`);
 			setPortfolio(response.data);
-			console.log(response.data);
 		} catch (err) {
-			console.error('Error fetching investments:', err);
+			console.error('Error fetching portfolio:', err);
 		}
 	};
 
 	const handleFundHouseChange = async (e) => {
 		const fundHouse = e.target.value;
 		setSelectedFundHouse(fundHouse);
-
 		setSchemes([]);
 		setSelectedScheme('');
 
 		if (!fundHouse) return;
 
 		try {
-			const response = await axios.get(`http://localhost:3000/api/schemes?fund_house=${encodeURIComponent(fundHouse)}`);
-			console.log('printing schemes')
-			console.log(response.data)
+			const response = await axios.get(
+				`${import.meta.env.VITE_API_AP}/schemes?fund_house=${encodeURIComponent(fundHouse)}`
+			);
 			setSchemes(response.data || []);
 		} catch (err) {
 			console.error('Error fetching schemes:', err);
@@ -97,14 +163,12 @@ export default function App() {
 		}
 
 		try {
-			const response = await axios.post(`http://localhost:3000/api/users/${USER_ID}/investment`, {
+			await axios.post(`${import.meta.env.VITE_API_AP}/users/${userId}/investment`, {
 				scheme_code: selectedScheme,
 				investment_amount: parseFloat(investmentAmount),
 			});
 
-			console.log('Investment created:', response.data);
 			fetchPortfolio();
-
 			setSelectedFundHouse('');
 			setSelectedScheme('');
 			setInvestmentAmount('');
@@ -120,19 +184,14 @@ export default function App() {
 
 	return (
 		<Container maxWidth="md" sx={{ paddingTop: '2rem' }}>
-
 			<Typography variant="h5" gutterBottom>
 				Add New Investment
 			</Typography>
 
-			{/* 2.1: Select Fund House */}
+			{/* Select Fund House */}
 			<FormControl fullWidth sx={{ marginBottom: '1rem' }}>
 				<InputLabel>Fund House</InputLabel>
-				<Select
-					value={selectedFundHouse}
-					onChange={handleFundHouseChange}
-					label="Fund House"
-				>
+				<Select value={selectedFundHouse} onChange={handleFundHouseChange} label="Fund House">
 					<MenuItem value="">
 						<em>-- Select Fund House --</em>
 					</MenuItem>
@@ -145,24 +204,11 @@ export default function App() {
 				<FormHelperText>Select a fund house to proceed</FormHelperText>
 			</FormControl>
 
-			{/* 2.2: Choose Scheme (fetched from backend) */}
+			{/* Choose Scheme */}
 			{schemes && (
 				<FormControl fullWidth sx={{ marginBottom: '1rem' }}>
 					<InputLabel>Scheme</InputLabel>
-					<Select
-						value={selectedScheme}
-						onChange={(e) => setSelectedScheme(e.target.value)}
-						label="Scheme"
-						sx={{
-							'& .MuiSelect-select': {
-								backgroundColor: '#ffffff',
-								color: '#000000',           // Ensure text color is visible
-							},
-							'& .MuiMenuItem-root': {
-								backgroundColor: '#ffffff', // Set background color for the items
-							},
-						}}
-					>
+					<Select value={selectedScheme} onChange={(e) => setSelectedScheme(e.target.value)} label="Scheme">
 						<MenuItem value="">
 							<em>-- Select Scheme --</em>
 						</MenuItem>
@@ -192,7 +238,7 @@ export default function App() {
 				Create Investment
 			</Button>
 
-			<hr/>
+			<hr />
 
 			<Typography variant="h4" gutterBottom>
 				My Portfolio
@@ -230,3 +276,9 @@ export default function App() {
 		</Container>
 	);
 }
+
+
+
+
+
+
